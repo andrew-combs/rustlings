@@ -28,8 +28,6 @@ enum ParsePersonError {
     ParseInt(ParseIntError),
 }
 
-// I AM NOT DONE
-
 // Steps:
 // 1. If the length of the provided string is 0, an error should be returned
 // 2. Split the given string on the commas present in it
@@ -46,6 +44,46 @@ enum ParsePersonError {
 impl FromStr for Person {
     type Err = ParsePersonError;
     fn from_str(s: &str) -> Result<Person, Self::Err> {
+        // println!("s = {}", s);
+
+        let result = &str::split(s, ",").collect::<Vec<&str>>()[..];
+
+        let mut err: Option<ParsePersonError> = None;
+        let mut name = String::new();
+        let mut age = 0;
+
+        match result {
+            [""] => {
+                err = Some(ParsePersonError::Empty);
+            },
+            [only_one] => {
+                err = Some(ParsePersonError::BadLen);
+            },
+            [n, a] => {
+                name = n.to_string();
+                age = a.parse::<usize>().map_err(|e| ParsePersonError::ParseInt(e) )?;
+
+                if name.is_empty() { err = Some(ParsePersonError::NoName) };
+            },
+            _ => {
+                err = Some(ParsePersonError::BadLen);
+            }
+        };
+
+        if let Some(error) = err {
+            Err(error)
+        } else {
+            Ok(Person {
+                name: name,
+                age: age
+            })
+        }
+    }
+}
+
+impl From<ParseIntError> for ParsePersonError {
+    fn from(error: ParseIntError) -> ParsePersonError {
+        ParsePersonError::ParseInt(error)
     }
 }
 
@@ -58,18 +96,26 @@ fn main() {
 mod tests {
     use super::*;
 
+    // #[test]
+    // fn foo() {
+    //     let a = ",data";
+    //     let parsed: Vec<&str> = str::split(a, ",").collect();
+    //     println!("{:?}", parsed);
+    //     println!("length = {}", parsed.len());
+    //     panic!()
+    // }
     #[test]
     fn empty_input() {
         assert_eq!("".parse::<Person>(), Err(ParsePersonError::Empty));
     }
-    #[test]
-    fn good_input() {
-        let p = "John,32".parse::<Person>();
-        assert!(p.is_ok());
-        let p = p.unwrap();
-        assert_eq!(p.name, "John");
-        assert_eq!(p.age, 32);
-    }
+     #[test]
+     fn good_input() {
+         let p = "John,32".parse::<Person>();
+         assert!(p.is_ok());
+         let p = p.unwrap();
+         assert_eq!(p.name, "John");
+         assert_eq!(p.age, 32);
+     }
     #[test]
     fn missing_age() {
         assert!(matches!(
